@@ -20,14 +20,14 @@ Then run `python-lsp-server` as usual, the plugin will be auto-discovered by
 ## Configuration
 
 This plugin has two options:
-`pylsp.plugins.pylsp_llmls.model`: instructs the plugin what model to use with litellm. Defaults to `ollama/deepseek-coder-v2:16b`
-`pylsp.plugins.pylsp_llmls.options`: dictionary (str->str) of settings to pass as kwargs to litellm's completion. Defaults to `{"api_base": "http://localhost:11434"}`
+- `pylsp.plugins.pylsp_llmls.model`: instructs the plugin what model to use with litellm. Defaults to `ollama/deepseek-coder-v2:16b`
+- `pylsp.plugins.pylsp_llmls.options`: dictionary (str->str) of settings to pass as kwargs to litellm's completion. Defaults to `{"api_base": "http://localhost:11434"}`
 
 ## Features
 
 This plugin adds the following features to `pylsp`:
-- LLM Autocomplete action: autocompletes the selected code
-- LLM Instruct action: must start with at least one full-line comment then optional code - tells the LLM to follow the commented instructions, then replaces the selection with the result
+- `LLM Autocomplete` action: autocompletes the selected code
+- `LLM Instruct` action: must start with at least one full-line comment then optional code - tells the LLM to follow the commented instructions, then replaces the selection with the result
 
 ## Developing
 
