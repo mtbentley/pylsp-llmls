@@ -25,6 +25,22 @@ This plugin has two options:
 - `pylsp.plugins.pylsp_llmls.model`: instructs the plugin what model to use with litellm. Defaults to `ollama/deepseek-coder-v2:16b`
 - `pylsp.plugins.pylsp_llmls.options`: dictionary (str->str) of settings to pass as kwargs to litellm's completion. Defaults to `{"api_base": "http://localhost:11434"}`
 
+To configure ollama in helix, add the following to your `languages.toml`:
+```toml
+[language-server.pylsp.config]
+pylsp.plugins.pylsp_llmls.model = "ollama/deepseek-coder-v2:16b"
+pylsp.plugins.pylsp_llmls.options = { "api_base" = "http://localhost:11434"}
+```
+
+To use with openai (eg, gpt-4o), add the following to your `languages.toml`:
+```toml
+[language-server.pylsp.config]
+pylsp.plugins.pylsp_llmls.model = "gpt-4o"
+pylsp.plugins.pylsp_llmls.options = { "api_key" = "$API_KEY"}
+```
+
+See [the litellm docs](https://docs.litellm.ai/docs/providers) for details on more providers
+
 ## Features
 
 This plugin adds the following features to `pylsp`:
