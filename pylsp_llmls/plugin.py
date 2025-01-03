@@ -45,7 +45,7 @@ def pylsp_settings():
         "plugins": {
             "pylsp_llmls": {
                 "model": "ollama/deepseek-coder-v2:16b",
-                "options": {"api_base": "http://localhost:11434"},
+                "options": {},
             }
         }
     }
