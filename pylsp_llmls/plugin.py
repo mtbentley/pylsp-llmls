@@ -124,7 +124,6 @@ def pylsp_execute_command(config, workspace, command, arguments):
 
     start = range["start"]
     range["end"] = range["start"] = start
-    logger.warn(range)
 
     for chunk in response:
         t = chunk.choices[0].delta.content
