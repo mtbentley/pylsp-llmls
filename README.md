@@ -10,8 +10,9 @@ This is a plugin for [Python LSP Server](https://github.com/python-lsp/python-ls
 
 To use this plugin, you need to install this plugin in the same virtualenv as python-lsp-server itself.
 
+It's not available on pypi (yet?), so install from source:
 ``` bash
-pip install pylsp-llmls
+pip install git+https://github.com/mtbentley/pylsp-llmls.git#egg=pylsp-llmls
 ```
 
 Then run `python-lsp-server` as usual, the plugin will be auto-discovered by
