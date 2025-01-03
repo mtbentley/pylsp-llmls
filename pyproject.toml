@@ -14,6 +14,8 @@ litellm = "^1.56.8"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.3.4"
+flake8 = "^7.1.1"
+mypy = "^1.14.1"
 
 [build-system]
 requires = ["poetry-core"]
