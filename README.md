@@ -1,6 +1,8 @@
 # pylsp-llmls
 
-pylsp llm action
+copilot-style LLM autocomplete as a python lsp plugin
+
+Uses litellm under the hood, allowing users to plug in any LLM provider - using local ollama by default
 
 This is a plugin for [Python LSP Server](https://github.com/python-lsp/python-lsp-server).
 
