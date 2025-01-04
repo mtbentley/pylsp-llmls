@@ -175,6 +175,8 @@ def pylsp_execute_command(config, workspace, command, arguments):
         }
         logger.info("applying workspace edit: %s %s", command, edit)
         workspace.apply_edit(edit)
+        start["line"] += 2
+        start["character"] = 0
 
     range["end"] = range["start"] = start
 
@@ -198,7 +200,7 @@ def pylsp_code_actions(config, workspace, document, range, context):
     end_offset = document.offset_at_position(range["end"])
     text = document.source[start_offset:end_offset]
 
-    r = [
+    return [
         {
             "title": command.title,
             "kind": "source",
@@ -210,4 +212,3 @@ def pylsp_code_actions(config, workspace, document, range, context):
         }
         for command_name, command in COMMANDS.items()
     ]
-    return r
