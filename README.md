@@ -47,12 +47,13 @@ See [the litellm docs](https://docs.litellm.ai/docs/providers) for details on mo
 This plugin adds the following features to `pylsp`:
 - `LLM Autocomplete` action: autocompletes the selected code
 - `LLM Instruct` action: must start with at least one full-line comment then optional code - tells the LLM to follow the commented instructions, then replaces the selection with the result
+- `LLM Instruct Append` action: takes an instruction (initial commented lines) and context code, and appends code below the context
 
 ![example](recording.gif)
 
 ## ToDo
 A couple more things I want to do to make this better...
-- [ ] add a "instruct and append" action - similar to the existing "instruct", except it takes an instruction, some context code, and then adds the result below
+- [x] add a "instruct and append" action - similar to the existing "instruct", except it takes an instruction, some context code, and then adds the result below
 - [ ] fine tune a model?
 
 ## Developing

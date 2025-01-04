@@ -2,31 +2,12 @@ import logging
 
 from pylsp import hookimpl  # type: ignore[import-untyped]
 from litellm import completion
+from dataclasses import dataclass
+from typing import Callable
 
 logger = logging.getLogger(__name__)
 
-SYSTEM_PROMPT_COMPLETE = """
-You are a helpful code assistant.
-Complete the following code.
-It will be inserted directly into a python source file.
-* Do not include explanations
-* Do not include tests
-* Do include minimal comments
-* Do not include markdown
-* do not include backticks ("```") or anything else surrounding the result
-* do not preface the resulting code with anything
-"""
-
-SYSTEM_PROMPT_INSTRUCT = """
-You are a helpful code assistant.
-You will get two messages: instructions then code
-The format will be
-INSTRUCTIONS
-instructions here
-CODE
-code here
-
-Follow the instructions to modify the code
+COMMAND_INSTS = """
 * Do not include explanations
 * Do not include tests
 * Do include minimal comments
@@ -36,19 +17,45 @@ Follow the instructions to modify the code
 * Do not include the INSTRUCTION or CODE text in your response
 """
 
+SYSTEM_PROMPT_COMPLETE = (
+    """
+You are a helpful code assistant.
+Complete the following code.
+It will be inserted directly into a python source file.
+"""
+    + COMMAND_INSTS
+)
 
-@hookimpl
-def pylsp_settings():
-    logger.info("Initializing pylsp_llmls")
+SYSTEM_PROMPT_INSTRUCT = (
+    """
+You are a helpful code assistant.
+You will get two messages: instructions then code
+The format will be
+INSTRUCTIONS
+instructions here
+CODE
+code here
 
-    return {
-        "plugins": {
-            "pylsp_llmls": {
-                "model": "ollama/deepseek-coder-v2:16b",
-                "options": {},
-            }
-        }
-    }
+Follow the instructions to modify the code
+"""
+    + COMMAND_INSTS
+)
+
+SYSTEM_PROMPT_APPEND = (
+    """
+You are a helpful code assistant
+You will be given tow messages: instructions then context
+The format will be
+INSTRUCTIONS
+instructions here
+CODE
+context here
+
+Your response will be added after the context
+Follow the instructions to produce the requested code
+"""
+    + COMMAND_INSTS
+)
 
 
 def _calc_new_start(text: str, old_start: dict[str, int]) -> dict[str, int]:
@@ -79,6 +86,47 @@ def _parse_instructions_code(text: str) -> str:
     return result
 
 
+@dataclass
+class Command:
+    title: str
+    instruction: str
+    input_parser: Callable[[str], str] = lambda x: x
+    start_at_end: bool = False
+
+
+COMMANDS: dict[str, Command] = {
+    "gay.maddie.complete": Command(
+        "LLM Autocomplete",
+        SYSTEM_PROMPT_COMPLETE,
+    ),
+    "gay.maddie.instructreplace": Command(
+        "LLM Instruct",
+        SYSTEM_PROMPT_INSTRUCT,
+        _parse_instructions_code,
+    ),
+    "gay.maddie.instructappend": Command(
+        "LLM Instruct Append",
+        SYSTEM_PROMPT_APPEND,
+        _parse_instructions_code,
+        True,
+    ),
+}
+
+
+@hookimpl
+def pylsp_settings():
+    logger.info("Initializing pylsp_llmls")
+
+    return {
+        "plugins": {
+            "pylsp_llmls": {
+                "model": "ollama/deepseek-coder-v2:16b",
+                "options": {},
+            }
+        }
+    }
+
+
 @hookimpl
 def pylsp_execute_command(config, workspace, command, arguments):
     logger.info("workspace/executeCommand: %s %s", command, arguments)
@@ -86,43 +134,48 @@ def pylsp_execute_command(config, workspace, command, arguments):
     model = cfg.get("model")
     options = cfg.get("options", {})
 
-    if command not in ("gay.maddie.complete", "gay.maddie.instructreplace"):
+    command_info = COMMANDS.get(command)
+
+    if command_info is None:
         return
 
     current_document, range, text = arguments
 
-    if command == "gay.maddie.complete":
-        response = completion(
-            model=model,
-            messages=[
-                {
-                    "role": "system",
-                    "content": SYSTEM_PROMPT_COMPLETE,
-                },
-                {"role": "user", "content": text},
-            ],
-            stream=True,
-            **options,
-        )
-    elif command == "gay.maddie.instructreplace":
-        response = completion(
-            model=model,
-            messages=[
-                {
-                    "role": "system",
-                    "content": SYSTEM_PROMPT_INSTRUCT,
-                },
-                {"role": "user", "content": _parse_instructions_code(text)},
-            ],
-            stream=True,
-            **options,
-        )
+    response = completion(
+        model=model,
+        messages=[
+            {
+                "role": "system",
+                "content": command_info.instruction,
+            },
+            {"role": "user", "content": command_info.input_parser(text)},
+        ],
+        stream=True,
+        **options,
+    )
 
-    edit = {"changes": {current_document: [{"range": range, "newText": ""}]}}
-    logger.info("applying workspace edit: %s %s", command, edit)
-    workspace.apply_edit(edit)
+    if not command_info.start_at_end:
+        edit = {
+            "changes": {current_document: [{"range": range, "newText": ""}]}
+        }
+        logger.info("applying workspace edit: %s %s", command, edit)
+        workspace.apply_edit(edit)
+        start = range["start"]
+    else:
+        start = range["end"]
+        edit = {
+            "changes": {
+                current_document: [
+                    {
+                        "range": {"start": start, "end": start},
+                        "newText": "\n\n\n",
+                    }
+                ]
+            }
+        }
+        logger.info("applying workspace edit: %s %s", command, edit)
+        workspace.apply_edit(edit)
 
-    start = range["start"]
     range["end"] = range["start"] = start
 
     for chunk in response:
@@ -145,24 +198,16 @@ def pylsp_code_actions(config, workspace, document, range, context):
     end_offset = document.offset_at_position(range["end"])
     text = document.source[start_offset:end_offset]
 
-    return [
+    r = [
         {
-            "title": "LLM Autocomplete",
+            "title": command.title,
             "kind": "source",
             "command": {
-                "title": "LLM Autocomplete",
-                "command": "gay.maddie.complete",
+                "title": command.title,
+                "command": command_name,
                 "arguments": [document.uri, range, text],
             },
-        },
-        {
-            "title": "LLM Instruct",
-            "kind": "source",
-            "command": {
-                "title": "LLM Instruct",
-                "command": "gay.maddie.instructreplace",
-                "arguments": [document.uri, range, text],
-            },
-        },
-        # TODO: instruct append instruction?
+        }
+        for command_name, command in COMMANDS.items()
     ]
+    return r
